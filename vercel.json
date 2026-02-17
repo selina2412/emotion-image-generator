@@ -1,8 +1,5 @@
 {
   "buildCommand": "pip install -r requirements.txt",
-  "projectSettings": {
-    "pythonVersion": "3.12"
-  },
   "rewrites": [
     {
       "source": "/(.*)",
