@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Emotion Style Explorer</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    text-align: center;
+    background: #1e1e2f;
+    color: #fff;
+    padding: 50px;
+  }
+
+  h1 {
+    margin-bottom: 20px;
+    font-size: 2.2em;
+  }
+
+  select, button {
+    padding: 12px 20px;
+    border-radius: 8px;
+    border: none;
+    font-size: 1em;
+    cursor: pointer;
+  }
+
+  /* Center controls (selects + button) */
+  .controls {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    align-items: center;
+    flex-wrap: wrap;
+    margin-top: 12px;
+  }
+
+  button {
+    background-color: #ff6b6b;
+    color: white;
+    transition: 0.3s;
+    /* ensure button is sized consistently */
+    min-width: 120px;
+  }
+
+  button:hover {
+    background-color: #ff8787;
+  }
+
+  #result {
+    margin-top: 30px;
+    max-width: 500px;
+    border-radius: 12px;
+    box-shadow: 0 0 25px rgba(0,0,0,0.7);
+    transition: opacity 0.3s ease-in-out;
+    opacity: 1;
+  }
+
+  #loading {
+    margin-top: 30px;
+    font-size: 1.2em;
+    display: none;
+    color: #ffd166;
+  }
+</style>
+</head>
+<body>
+
+<h1>🎭 Emotion Style Explorer</h1>
+<p>Select a feeling and visual style:</p>
+
+<div class="controls">
+<select id="emotion">
+  <option value="anxiety">Anxiety</option>
+  <option value="hope">Hope</option>
+  <option value="loneliness">Loneliness</option>
+</select>
+
+<select id="style">
+  <option value="dark">Dark</option>
+  <option value="minimal">Minimal</option>
+</select>
+
+<button id="generateBtn">Generate</button>
+</div>
+
+<p id="loading" style="display: none;">Loading image...</p>
+
+<img id="result" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1024' height='768'%3E%3Crect width='100%25' height='100%25' fill='%231e1e2f'/%3E%3C/svg%3E">
+
+<script>
+document.getElementById('generateBtn').addEventListener('click', async () => {
+  const emotion = document.getElementById('emotion').value;
+  const style = document.getElementById('style').value;
+  const img = document.getElementById('result');
+  const loading = document.getElementById('loading');
+
+  // UI feedback
+  img.style.opacity = 0;
+  loading.style.display = 'block';
+
+  try {
+    const resp = await fetch('/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ emotion, style })
+    });
+
+    if (!resp.ok) throw new Error('Generation failed');
+    const data = await resp.json();
+    console.log('generate response:', data);
+    // Expecting { image_url: '/static/...' } or external url or data URL
+    // Improve reliability by clearing src first and cache-busting external URLs
+    loading.textContent = 'Loading image...';
+    // clear src to force reload even if the same data is returned
+    img.src = '';
+    await new Promise(r => setTimeout(r, 50));
+
+    let finalUrl = data.image_url;
+    try {
+      if (finalUrl && finalUrl.startsWith('http')) {
+        // append cache-bust param
+        const sep = finalUrl.includes('?') ? '&' : '?';
+        finalUrl = finalUrl + sep + '_=' + Date.now();
+      }
+    } catch (e) {
+      console.warn('URL handling failed', e);
+    }
+
+    img.src = finalUrl;
+    img.onload = () => {
+      img.style.opacity = 1;
+      loading.style.display = 'none';
+      loading.textContent = 'Loading image...';
+    }
+  } catch (err) {
+    loading.textContent = 'Failed to generate image.';
+    console.error(err);
+  }
+});
+</script>
+
+</body>
+</html>
